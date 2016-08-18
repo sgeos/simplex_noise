@@ -1,6 +1,7 @@
 # SimplexNoise
 
-**!!! Work in progress.  This repository is very messy and not ready for public viewing. !!!**
+**!!! Work in progress.  This repository is very messy and not ready for public viewing. 
+It need to be completed, refactored, organized and properly documented for release.  !!!**
 
 An elixir implementation of simplex noise.
 The goal is to clean this up and release it as a proper hex package.
