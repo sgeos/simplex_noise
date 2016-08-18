@@ -1,7 +1,7 @@
 # SimplexNoise
 
 **!!! Work in progress.  This repository is very messy and not ready for public viewing. 
-It need to be completed, refactored, organized and properly documented for release.  !!!**
+It need to be completed, refactored, organized and properly documented.  !!!**
 
 An elixir implementation of simplex noise.
 The goal is to clean this up and release it as a proper hex package.
@@ -15,7 +15,7 @@ This project contains the followng notable files.
 - **lib/simplex_noise/overview.ex** Incomplete original elixir implementation
 - **lib/simplex_noise/octave_noise.ex** Functions to generate octave noise from the various implementations.
 
-The **snippets/\*_noise\*_png.exs** files can be run to generate PNG files in the **snippets** directory
+The **snippets/\*_noise\*_png.exs** files can be run to generate PNG files in the **snippets/** directory
 with the various simplex noise implementations.
 
 ```sh
@@ -23,8 +23,9 @@ mix run snippets/simplex_noise_improved_png.exs
 # imgcat is a utility to view images in an OSX iTerm 2 terminal
 imgcat snippets/noise.png
 ```
+![procedurally generated map](https://raw.githubusercontent.com/sgeos/simplex_noise/master/snippets/noise.png)
 
-The **snippets** directory also contains other assorted scripts.
+The **snippets/** directory also contains other assorted scripts that need to be incorporated into the larger project.
 
 ## Note on the Patent
 
