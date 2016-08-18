@@ -1,0 +1,2 @@
+%{"crc": {:hex, :crc, "0.4.0", "b2a370bf2d99ea1ab9e02fb3389446f68dae18a8d47137bb5332e1b06da3c49b", [:mix, :make, :make], []},
+  "png": {:git, "https://github.com/yuce/png.git", "b6af0face98495f10fba3f638f1f36931ff2b3fe", []}}
