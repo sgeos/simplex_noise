@@ -9,9 +9,9 @@ The goal is to clean this up and release it as a proper hex package.
 The plan is to provide a general N-dimensional simplex noise implementation
 where the user can supply a function to hash from simplicial verticies to gradients.
 The supplied hash function will serve as a mechanism to seed maps.
-Providing a method to generate a hash function from a seed number is also planned.
+Providing the means to generate a hash function from a seed number is also planned.
 
-tttt project contains the followng notable files.
+This project contains the followng notable files.
 
 - **lib/simplex_noise.ex** Elixir translation of Stefan Gustavson's Java implementation
 - **lib/simplex_noise/improved.ex** Elixir translation of Stefan Gustavson's improved Java implementation
