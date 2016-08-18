@@ -1,6 +1,6 @@
 # SimplexNoise
 
-!!! Work in progress.  This repository is very messy and not ready for public viewing.
+**!!! Work in progress.  This repository is very messy and not ready for public viewing. !!!**
 
 An elixir implementation of simplex noise.
 The goal is to clean this up and release it as a proper hex package.
@@ -14,7 +14,7 @@ This project contains the followng notable files.
 - **lib/simplex_noise/overview.ex** Incomplete original elixir implementation
 - **lib/simplex_noise/octave_noise.ex** Functions to generate octave noise from the various implementations.
 
-The **snippets/\*png.exs** files can be run to generate PNG files in the **snippets** directory
+The **snippets/\*_noise\*_png.exs** files can be run to generate PNG files in the **snippets** directory
 with the various simplex noise implementations.
 
 ```sh
