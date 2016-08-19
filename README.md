@@ -28,7 +28,7 @@ mix run snippets/simplex_noise_improved_png.exs
 # imgcat is a utility to view images in an OSX iTerm 2 terminal
 imgcat snippets/noise.png
 ```
-![procedurally generated map](https://raw.githubusercontent.com/sgeos/simplex_noise/master/snippets/noise.png)
+![procedurally generated map](https://raw.githubusercontent.com/sgeos/simplex_noise/master/snippets/sample_noise_map.png)
 
 The **snippets/** directory also contains other assorted scripts that need to be incorporated into the larger project.
 
