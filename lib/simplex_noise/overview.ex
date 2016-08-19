@@ -6,6 +6,7 @@
 #   http://www.beosil.com/download/CollisionDetectionHashing_VMV03.pdf
 
 defmodule SimplexNoise.Overview do
+  use OctaveNoise.Mixin
   import Bitwise
 
   # Skewing Factor 1D to 5D with dummy 0D value
@@ -18,15 +19,15 @@ defmodule SimplexNoise.Overview do
     |> List.to_tuple
   @radius_squared 0.5
 
-  # Aliases
-  def noise(x, y, z, w, hash_function), do: noise [x, y, z, w], hash_function
-  def noise(x, y, z, hash_function), do: noise [x, y, z], hash_function
-  def noise(x, y, hash_function), do: noise [x, y], hash_function
-  def noise(x, hash_function) when is_number(x), do: noise [x], hash_function
-  def noise(point, hash_function) when is_tuple(point), do: noise(point |> Tuple.to_list, hash_function)
-
   # Noise Function
-  def noise(point, hash_function) when is_list(point) do
+  # when is_list(point) would be safer
+  def noise(point) when is_tuple(point) do
+    point = point |> Tuple.to_list
+    noise point, point |> length |> default_hash_function
+  end
+  def noise(point), do: noise point, point |> length |> default_hash_function
+  def noise(point, hash_function) when is_tuple(point), do: noise point |> Tuple.to_list, hash_function
+  def noise(point, hash_function) do
     dimensions = length(point)
 
     point
@@ -70,22 +71,23 @@ defmodule SimplexNoise.Overview do
     end
   end
 
-  def default_hash_function(point) do
-    dimensions = length(point)
-    {gradient, hash_value} = point
-    |> Enum.with_index
-    |> Enum.map_reduce(0x156E9,
-      fn {value, shift}, acc ->
-        hash_value = (trunc(value) * (shift + 1)) >>> shift ^^^ acc
-        if 0x0 == (hash_value &&& 0x1) do
-          {1, hash_value}
-        else
-          {-1, hash_value} 
+  def default_hash_function(dimensions) do
+    fn (point) ->
+      {gradient, hash_value} = point
+      |> Enum.with_index
+      |> Enum.map_reduce(0x156E9,
+        fn {value, shift}, acc ->
+          hash_value = (trunc(value) * (shift + 1)) >>> shift ^^^ acc
+          if 0x0 == (hash_value &&& 0x1) do
+            {1, hash_value}
+          else
+            {-1, hash_value} 
+          end
         end
-      end
-    )
-    gradient
-    |> List.replace_at(rem(hash_value, dimensions), 0)
+      )
+      gradient
+      |> List.replace_at(rem(hash_value, dimensions), 0)
+    end
   end
 
   def dot(point_a, point_b) do
