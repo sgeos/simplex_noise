@@ -20,9 +20,7 @@ defmodule Gradient do
     # zero_index = rem(zero_index, dimensions)
     axis_index_list
     |> Enum.map(&axis_index_to_direction/1)
-    |> List.to_tuple
-    |> Tuple.insert_at(zero_index, 0)
-    |> Tuple.to_list
+    |> List.insert_at(zero_index, 0)
   end
 
   def axis_index_to_direction(0), do: -1

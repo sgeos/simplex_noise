@@ -6,6 +6,7 @@
 #   http://www.beosil.com/download/CollisionDetectionHashing_VMV03.pdf
 
 defmodule SimplexNoise.Overview do
+  import Bitwise
 
   # Skewing Factor 1D to 5D with dummy 0D value
   @precomputed_dimensions 5
@@ -15,33 +16,27 @@ defmodule SimplexNoise.Overview do
   @unskewing_factor ([1.0] ++
     (1..@precomputed_dimensions |> Enum.map(&SimplexNoise.Skew.skewing_factor_from_simplical_grid/1)))
     |> List.to_tuple
+  @radius_squared 0.5
 
   # Aliases
-  def noise(x, y, z, w), do: noise [x, y, z, w]
-  def noise(x, y, z), do: noise [x, y, z]
-  def noise(x, y), do: noise [x, y]
-  def noise(x) when is_number(x), do: noise [x]
-  def noise(point) when is_tuple(point), do: point |> Tuple.to_list
+  def noise(x, y, z, w, hash_function), do: noise [x, y, z, w], hash_function
+  def noise(x, y, z, hash_function), do: noise [x, y, z], hash_function
+  def noise(x, y, hash_function), do: noise [x, y], hash_function
+  def noise(x, hash_function) when is_number(x), do: noise [x], hash_function
+  def noise(point, hash_function) when is_tuple(point), do: noise(point |> Tuple.to_list, hash_function)
 
   # Noise Function
-  def noise(point) when is_list(point) do
+  def noise(point, hash_function) when is_list(point) do
+    dimensions = length(point)
+
     point
-    #|> vertex_list
-    #|> Enum.map(vertex_contribution)
+    |> vertex_list(dimensions)
+    |> Enum.map(&vertex_contribution(point, &1, dimensions, hash_function))
     |> Enum.sum
 
-    #|> gradient_select
-    #|> kernel_summation
-
-
-    #dimensions = length(point)
     #point
     #|> gradient_index
     #|> gradient(dimensions)
-
-    #point
-    #|> skew_to_simplical_grid(dimensions)
-    #|> simplical_subdivide
   end
 
   def vertex_list(point, dimensions) do
@@ -59,10 +54,56 @@ defmodule SimplexNoise.Overview do
     |> simplex_vertices(unit_hypercube_origin, dimensions)
   end
 
+  def vertex_contribution(point, vertex, dimensions, hash_function) do
+    displacement_vector = point
+    |> displacement_vector( vertex |> unskew_to_original_grid(dimensions) )
+
+    contribution = displacement_vector
+    |> Enum.reduce(@radius_squared, fn displacement, acc -> acc - displacement*displacement end)
+
+    if 0.0 < contribution do
+      contribution = 8 * contribution * contribution * contribution * contribution
+      extrapolated_gradient = displacement_vector |> dot( hash_function.(vertex) )
+      contribution * extrapolated_gradient
+    else
+      0.0
+    end
+  end
+
+  def default_hash_function(point) do
+    dimensions = length(point)
+    {gradient, hash_value} = point
+    |> Enum.with_index
+    |> Enum.map_reduce(0x156E9,
+      fn {value, shift}, acc ->
+        hash_value = (trunc(value) * (shift + 1)) >>> shift ^^^ acc
+        if 0x0 == (hash_value &&& 0x1) do
+          {1, hash_value}
+        else
+          {-1, hash_value} 
+        end
+      end
+    )
+    gradient
+    |> List.replace_at(rem(hash_value, dimensions), 0)
+  end
+
+  def dot(point_a, point_b) do
+    point_a
+    |> Enum.zip(point_b)
+    |> Enum.reduce(0, fn {a, b}, acc -> acc + a * b end)
+  end
+
   def unit_hypercube_origin(point, dimensions) do
     point
     |> skew_to_simplical_grid(dimensions)
     |> Enum.map(&(&1 |> Float.floor |> trunc))
+  end
+
+  def displacement_vector(point_a, point_b) do
+    point_a
+    |> Enum.zip(point_b)
+    |> Enum.map(fn {a, b} -> a - b end)
   end
 
   def position_in_unit_hypercube(point, cell_origin, dimensions) do
