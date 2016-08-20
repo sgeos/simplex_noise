@@ -15,8 +15,8 @@ This project contains the followng notable files.
 
 - **lib/simplex_noise.ex** Elixir translation of Stefan Gustavson's Java implementation
 - **lib/simplex_noise/improved.ex** Elixir translation of Stefan Gustavson's improved Java implementation
-- **lib/simplex_noise/reference.ex** Liberal Elixir translation of Ken Perlin's Java reference implementation
-- **lib/simplex_noise/reference2.ex** Even more liberal and hopefull descriptive Elixir translation of Ken Perlin's Java reference implementation
+- **lib/simplex_noise/perlin_reference.ex** Liberal Elixir translation of Ken Perlin's Java reference implementation
+- **lib/simplex_noise/perlin_reference_rewrite.ex** A complete Elixir rewrite of Ken Perlin's Java reference implementation
 - **lib/simplex_noise/overview.ex** Incomplete original elixir implementation
 - **lib/simplex_noise/octave_noise.ex** Functions to generate octave noise from the various implementations.
 

@@ -4,7 +4,7 @@
 # A complete implementation of a function returning a value that
 # conforms to the new method is given below.
 # Translated from Java class definition to Elixir module.
-defmodule SimplexNoiseReference do
+defmodule SimplexNoise.PerlinReference do
   use Bitwise
   use OctaveNoise.Mixin
 

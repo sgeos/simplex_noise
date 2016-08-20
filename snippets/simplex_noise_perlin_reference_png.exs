@@ -57,7 +57,7 @@ png = :png.create(config)
         z = :math.pi
         point = {x, y, z}
         options = %{octaves: 3}
-        SimplexNoiseReference2.octave_noise(point, options)
+        SimplexNoise.PerlinReference.octave_noise(point, options)
         |> ColorMap.index
       end
     )
