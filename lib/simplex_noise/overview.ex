@@ -77,16 +77,16 @@ defmodule SimplexNoise.Overview do
       |> Enum.with_index
       |> Enum.map_reduce(0x156E9,
         fn {value, shift}, acc ->
-          hash_value = (trunc(value) * (shift + 1)) >>> shift ^^^ acc
-          if 0x0 == (hash_value &&& 0x1) do
-            {1, hash_value}
+          hash_value = (trunc(value) * (2 * shift + 1)) &&& (0x1 <<< shift)
+          if 0x0 == hash_value do
+            {1, acc * 17 + 5}
           else
-            {-1, hash_value} 
+            {-1, acc * 17 + 5} 
           end
         end
       )
       gradient
-      |> List.replace_at(rem(hash_value, dimensions), 0)
+      #|> List.replace_at(rem(hash_value, dimensions), 0)
     end
   end
 

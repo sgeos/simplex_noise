@@ -16,7 +16,6 @@ defmodule ColorMap do
   def index(_noise_in), do: 7 # snow
 end
 
-
 # define an 8 bit RGB palette with 8 colors
 palette = {
   :rgb,
@@ -48,14 +47,15 @@ png = :png.create(config)
 1..height
 |> Enum.map(
   fn y_in ->
-    IO.puts "#{y_in} of #{height}"
+    if 1 == y_in or 0 == rem(y_in, 32) do IO.puts "#{y_in} of #{height}" end
     1..width
     |> Enum.map(
       fn x_in ->
         x = 8 * x_in / width
         y = 8 * y_in / height
-        z = :math.pi
-        point = {x, y, z}
+        #z = :math.pi
+        #point = {x, y, z}
+        point = {x, y}
         options = %{octaves: 1}
         SimplexNoise.Overview.octave_noise(point, options)
         |> ColorMap.index
