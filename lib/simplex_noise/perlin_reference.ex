@@ -83,12 +83,11 @@ defmodule SimplexNoise.PerlinReference do
       |> Enum.map(&(if 1<&1 do b(h,&1) else h &&& 0x3 end))
       [p, q, r] = [b3==b5, b4==b5, (b4^^^b3)!=b5]
       |> Enum.map(&(if &1 do -1.0 else 1.0 end))
-      pqr = case b1 do
-        0 -> {p*z, q*x, r*y}
+      {p, q, r} = case b1 do
         1 -> {p*x, q*y, r*z}
-        _ -> {p*y, q*z, r*x} # 2==b1
+        2 -> {p*y, q*z, r*x}
+        _ -> {p*z, q*x, r*y} # 0==b1 or 3==b1
       end
-      {p, q, r} = pqr
       c = case {b1, b2} do
         {0, _} -> q+r
         {_, 0} -> q
@@ -99,6 +98,30 @@ defmodule SimplexNoise.PerlinReference do
 
     a = a |> put_elem(index, elem(a,index) + 1)
     {result, a}
+  end
+
+  def gradient(vertex) when is_list(vertex), do: vertex |> List.to_tuple |> gradient
+  def gradient(vertex) do
+    h = vertex
+    |> shuffle
+
+    [b1, b2, b3, b4, b5] = 1..5
+    |> Enum.map(&(if 1<&1 do b(h,&1) else h &&& 0x3 end))
+    [p, q, r] = [b3==b5, b4==b5, (b4^^^b3)!=b5]
+    |> Enum.map(&(if &1 do -1.0 else 1.0 end))
+    {p, q, r} = case b1 do
+      # put p, q, r in corresponding x, y, z position
+      1 -> {p, q, r}
+      2 -> {r, p, q}
+      _ -> {q, r, p} # 0==b1 or 3==b1
+    end
+    case {b1, b2} do
+      {0, _} -> [p, q, r]
+      # zero equivalent of r component; rotate to corresponding x, y, z
+      {_, 0} -> [p, q, r] |> List.replace_at(b1 - 2, 0)
+      # zero equivalent of q component; rotate to corresponding x, y, z
+      _ -> [p, q, r] |> List.replace_at(b1 - 3, 0) # b2==1
+    end
   end
 
   def hi({u, v, w}) when w <= u and v <= u, do: 0

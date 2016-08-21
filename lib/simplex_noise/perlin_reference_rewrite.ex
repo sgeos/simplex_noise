@@ -141,14 +141,14 @@ defmodule SimplexNoise.PerlinReferenceRewrite do
     |> Enum.map(&(&1 == last_sign_bit)) # true if sign bit == last sign bit
     |> Kernel.++([last_gradient_bit]) # add last gradient bit to list
     |> Enum.map(&(if &1 do -1.0 else 1.0 end)) # map true -> -1, false -> 1
-    |> Enum.split(rotate - 1) # rotate gradient components
+    |> Enum.split(1 - rotate) # rotate gradient components
     |> (fn {a, b} -> b ++ a end).() # done rotating
     |> ( # zero a component
       fn gradient ->
         case {rotate, zero_bit} do
-          {0, _} -> gradient # do not zero
-          {_, 0} -> gradient |> List.replace_at(-1, 0) # zero z component
-          _ -> gradient |> List.replace_at(1, 0) # zero y component
+          {0, _} -> gradient # do not zero displacement vector contribution
+          {_, 0} -> gradient |> List.replace_at(rotate-2, 0) # zero displacement vector contribution
+          _ -> gradient |> List.replace_at(rotate-3, 0) # zero displacement vector contribution
         end
       end
     ).() # return gradient
