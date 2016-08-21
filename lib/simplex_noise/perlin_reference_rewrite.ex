@@ -11,7 +11,7 @@ defmodule SimplexNoise.PerlinReferenceRewrite do
   # kernel summation radius squared
   # 0.5 for no discontinuities
   # 0.6 in original code
-  @radius_squared 0.5
+  @radius_squared 0.6
 
   # gradient pattern table
   # 6 bits per entry- 3 set, 3 clear
@@ -28,6 +28,7 @@ defmodule SimplexNoise.PerlinReferenceRewrite do
   @skewing_factor ( :math.sqrt(@dimensions + 1) - 1 ) / @dimensions
   # 1.0 / 6.0 is the 3D unskewing factor
   @unskewing_factor ( 1 - ( 1 / :math.sqrt(@dimensions + 1) ) ) / @dimensions
+  @normalization_factor 8
 
   # Noise Function Alias
   def noise(x, y, z), do: noise [x, y, z]
@@ -38,6 +39,7 @@ defmodule SimplexNoise.PerlinReferenceRewrite do
     |> vertex_list
     |> Enum.map(&vertex_contribution(input_point, &1))
     |> Enum.sum
+    |> Kernel.*(@normalization_factor)
   end
 
   def vertex_list(input_point) do
@@ -108,7 +110,7 @@ defmodule SimplexNoise.PerlinReferenceRewrite do
     |> Enum.reduce(@radius_squared, fn displacement, acc -> acc - displacement*displacement end)
 
     if 0.0 < contribution do
-      contribution = 8 * contribution * contribution * contribution * contribution
+      contribution = contribution * contribution * contribution * contribution
       extrapolated_gradient = displacement_vector
       |> dot( vertex |> gradient )
       contribution * extrapolated_gradient

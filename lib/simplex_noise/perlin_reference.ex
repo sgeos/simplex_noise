@@ -11,7 +11,7 @@ defmodule SimplexNoise.PerlinReference do
   # kernel summation radius squared
   # 0.5 for no discontinuities
   # 0.6 in original code
-  @r2 0.5
+  @r2 0.6
 
   # bit pattern table
   @t { 0x15, 0x38, 0x32, 0x2c, 0x0d, 0x13, 0x07, 0x2a }
