@@ -204,7 +204,15 @@ defmodule SimplexNoise.PerlinReferenceRewrite do
 
   def gradient_index(list) do
     0..7
-    |> Enum.reduce(0, fn bit_index, acc -> acc + gradient_pattern(list, bit_index) end)
+    |> Enum.map(
+      fn bit ->
+        list
+        |> Enum.split(bit |> rem(@dimensions)) # rotate by bit
+        |> (fn {a,b} -> b ++ a end).() # done rotating
+        |> gradient_pattern(bit) # get gradient pattern at bit
+      end
+    )
+    |> Enum.sum # sum bits
   end
 
   # does not scale beyond 3 dimensions

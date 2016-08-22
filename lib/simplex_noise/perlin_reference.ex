@@ -133,9 +133,15 @@ defmodule SimplexNoise.PerlinReference do
   def lo({u, v, w}) when w <= u and w <= v, do: 2
   def lo(_uvw), do: 1
 
-  def shuffle(t) when is_tuple(t) do
-    0..7
-    |> Enum.reduce(0, fn bit, acc -> acc + b(t, bit) end)
+  def shuffle({i, j, k}) do
+    b({i, j, k}, 0) +
+      b({j, k, i}, 1) +
+      b({k, i, j}, 2) +
+      b({i, j, k}, 3) +
+      b({j, k, i}, 4) +
+      b({k, i, j}, 5) +
+      b({i, j, k}, 6) +
+      b({j, k, i}, 7)
   end
 
   # probably does not scale beyond 3 dimensions
