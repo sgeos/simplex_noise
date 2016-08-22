@@ -13,147 +13,165 @@ defmodule SimplexNoise.PerlinReference do
   # 0.6 in original code
   @r2 0.6
 
+  # kernel contribution amplitude
+  # 4 in reference implementation
+  @a 4
+
+  # normalization factor
+  # used to clamp output to -1 -> +1 range
+  @n 8
+
   # bit pattern table
   @t { 0x15, 0x38, 0x32, 0x2c, 0x0d, 0x13, 0x07, 0x2a }
 
   # Noise Function Alias
-  def noise(x, y, z), do: noise {x, y, z}
+  def noise(x, y, z), do: noise [x, y, z]
+  def noise({x, y, z}), do: noise [x, y, z]
 
-  # 1.0 / 3.0 is the 3D skew factor
-  # 1.0 / 6.0 is the 3D unskew factor
+  def noise([x, y, z]) do
+    # (1 / 3) is the 3D skewing factor
+    # s is the skewing offset
+    s = (x + y + z) / 3
 
-  def noise(xyz) when is_tuple(xyz) do
-    size = tuple_size(xyz)
-    max = size - 1
+    # [i, j, k] is the unit hypercube origin; simplicial grid space
+    i = Float.floor(x + s) |> trunc
+    j = Float.floor(y + s) |> trunc
+    k = Float.floor(z + s) |> trunc
 
-    s = xyz
-    |> Tuple.to_list
-    |> Enum.reduce(0, &(&1+&2))
-    s = s / (size * 1.0)
-    ijk = 0..max
-    |> Enum.map(&((elem(xyz,&1) + s) |> Float.floor |> trunc))
-    |> List.to_tuple
+    # (1 / 6) is the 3D unskewing factor
+    # s is now the unskewing offset
+    s = (i + j + k) / 6
 
-    s = ijk
-    |> Tuple.to_list
-    |> Enum.reduce(0, &(&1+&2))
-    s = s / (size * 2.0)
-    uvw = 0..max
-    |> Enum.map(&(elem(xyz,&1)-elem(ijk,&1)+s))
-    |> List.to_tuple
+    # [u, v, w] is the position in the unit hypercube; original grid space
+    u = x - i + s
+    v = y - j + s
+    w = z - k + s
 
-    hi = hi(uvw)
-    lo = lo(uvw)
+    # vertex component offset from unit hypercube origin; simplicial space
+    a = {0, 0, 0}
 
-    {result, _a} = [hi, 3-hi-lo, lo, 0]
-    |> Enum.reduce({0.0, Tuple.duplicate(0,size)},
-      fn index, {total, a} ->
-        {result, a} = k(ijk, uvw, a, index)
-        {total+result, a}
-      end)
-    result
+    # rank order components of relative position for simplicial subdivision
+    hi = hi([u, v, w])
+    lo = lo([u, v, w])
+
+    # kernel contributions for each vertex
+    # process vertices in order from offset [0, 0, 0] -> [1, 1, 1]
+    {k0, a} = k(hi, a, [i, j, k], [u, v, w])
+    {k1, a} = k(3-hi-lo, a, [i, j, k], [u, v, w])
+    {k2, a} = k(lo, a, [i, j, k], [u, v, w])
+    {k3, _a} = k(0, a, [i, j, k], [u, v, w])
+
+    # return sum of kernel contributions
+    k0 + k1 + k2 + k3
   end
 
-  def k(ijk, uvw, a, index) do
-    size = tuple_size(ijk)
-    max = size - 1
+  # kernel contribution
+  def k(vertex_index, {a0, a1, a2} = a, [i, j, k], [u, v, w]) do
+    # (1 / 6) is the 3D unskewing factor
+    # s is the unskewing offset
+    s = (a0 + a1 + a2) / 6
 
-    s = a
-    |> Tuple.to_list
-    |> Enum.reduce(0, &(&1+&2))
-    s = s / (size * 2.0)
-    xyz = 0..max
-    |> Enum.map(&(elem(uvw,&1)-elem(a,&1)+s))
-    |> List.to_tuple
-    {x,y,z} = xyz
+    # [x, y, z] is the displacement vector from the given vertex; original grid space
+    x = u - a0 + s
+    y = v - a1 + s
+    z = w - a2 + s
 
-    t = xyz
-    |> Tuple.to_list
-    |> Enum.reduce(@r2, &(&2-&1*&1))
+    # t is kernel contribution factor
+    t = @r2 - x*x - y*y - z*z
 
-    result = if t < 0 do
-      0
+    # h is the gradient index
+    h = shuffle([i + a0, j + a1, k + a2])
+
+    # next vertex to process
+    a = a |> put_elem(vertex_index, elem(a, vertex_index) + 1)
+
+    if t < 0 do
+      # too far, no contribution
+      {0, a}
     else
-      h = 0..max
-      |> Enum.map(&(elem(ijk,&1)+elem(a,&1)))
-      |> List.to_tuple
-      |> shuffle
+      # b5, b4 and b3 are sign bits
+      b5 = h >>> 5 &&& 0x1
+      b4 = h >>> 4 &&& 0x1
+      b3 = h >>> 3 &&& 0x1
 
-      [b1, b2, b3, b4, b5] = 1..5
-      |> Enum.map(&(if 1<&1 do b(h,&1) else h &&& 0x3 end))
-      [p, q, r] = [b3==b5, b4==b5, (b4^^^b3)!=b5]
-      |> Enum.map(&(if &1 do -1.0 else 1.0 end))
-      {p, q, r} = case b1 do
-        1 -> {p*x, q*y, r*z}
-        2 -> {p*y, q*z, r*x}
-        _ -> {p*z, q*x, r*y} # 0==b1 or 3==b1
-      end
-      c = case {b1, b2} do
-        {0, _} -> q+r
-        {_, 0} -> q
-        _ -> r # b2==1
-      end
-      8*t*t*t*t * (p+c)
+      # b2 is a zero bit
+      b2 = h >>> 2 &&& 0x1
+
+      # b is a two bit rotation index
+      b = h &&& 0x3
+
+      # pqr is the extrapolated gradient = displacement vector dot gradient
+      # at this point it contains the displacement vector rotated by the rotation index b
+      p = case b do 1->x; 2->y; _->z end
+      q = case b do 1->y; 2->z; _->x end
+      r = case b do 1->z; 2->x; _->y end
+
+      # apply sign bits to extrapolated gradient
+      p = if b5 == b3 do -p else p end
+      q = if b5 == b4 do -q else q end
+      r = if b5 != (b4 ^^^ b3) do -r else r end
+
+      # apply amplitude to kernel contribution
+      t = :math.pow(t, @a)
+
+      # potentially zero q or r and return contribution
+      { @n * t * (p + case {b, b2} do {0, _} -> q + r; {_, 0} -> q; _ -> r end), a }
     end
-
-    a = a |> put_elem(index, elem(a,index) + 1)
-    {result, a}
   end
 
-  def gradient(vertex) when is_list(vertex), do: vertex |> List.to_tuple |> gradient
   def gradient(vertex) do
-    h = vertex
-    |> shuffle
+    h = shuffle(vertex)
 
-    [b1, b2, b3, b4, b5] = 1..5
-    |> Enum.map(&(if 1<&1 do b(h,&1) else h &&& 0x3 end))
-    [p, q, r] = [b3==b5, b4==b5, (b4^^^b3)!=b5]
-    |> Enum.map(&(if &1 do -1.0 else 1.0 end))
-    {p, q, r} = case b1 do
-      # put p, q, r in corresponding x, y, z position
-      1 -> {p, q, r}
-      2 -> {r, p, q}
-      _ -> {q, r, p} # 0==b1 or 3==b1
+    # b5, b4 and b3 are sign bits
+    b5 = h >>> 5 &&& 0x1
+    b4 = h >>> 4 &&& 0x1
+    b3 = h >>> 3 &&& 0x1
+
+    # b2 is a zero bit
+    b2 = h >>> 2 &&& 0x1
+
+    # b is a two bit rotation index
+    b = h &&& 0x3
+
+    # pqr is the gradient
+    # apply sign bits
+    p = if b5 == b3 do -1.0 else 1.0 end
+    q = if b5 == b4 do -1.0 else 1.0 end
+    r = if b5 != (b4 ^^^ b3) do -1.0 else 1.0 end
+
+    # potentially zero q or r
+    {q, r} = case {b, b2} do
+      {0, _} -> {q, r}
+      {_, 0} -> {q, 0}
+      _ -> {0, r}
     end
-    case {b1, b2} do
-      {0, _} -> [p, q, r]
-      # zero equivalent of r component; rotate to corresponding x, y, z
-      {_, 0} -> [p, q, r] |> List.replace_at(b1 - 2, 0)
-      # zero equivalent of q component; rotate to corresponding x, y, z
-      _ -> [p, q, r] |> List.replace_at(b1 - 3, 0) # b2==1
+
+    # rotate gradient components by the rotation index b
+    case b do
+      1-> [p, q, r]
+      2-> [r, p, q]
+      _-> [q, r, p]
     end
   end
 
-  def hi({u, v, w}) when w <= u and v <= u, do: 0
-  def hi({u, v, w}) when u < w and v < w, do: 2
+  def hi([u, v, w]) when w <= u and v <= u, do: 0
+  def hi([u, v, w]) when u < w and v < w, do: 2
   def hi(_uvw), do: 1
 
-  # not the same as hi([w,v,u])
-  def lo({u, v, w}) when u < w and u < v, do: 0
-  def lo({u, v, w}) when w <= u and w <= v, do: 2
+  # not the same as hi([w,v,u]) when u==v or v==w
+  def lo([u, v, w]) when u < w and u < v, do: 0
+  def lo([u, v, w]) when w <= u and w <= v, do: 2
   def lo(_uvw), do: 1
 
-  def shuffle({i, j, k}) do
-    b({i, j, k}, 0) +
-      b({j, k, i}, 1) +
-      b({k, i, j}, 2) +
-      b({i, j, k}, 3) +
-      b({j, k, i}, 4) +
-      b({k, i, j}, 5) +
-      b({i, j, k}, 6) +
-      b({j, k, i}, 7)
+  def shuffle([i, j, k]) do
+    b([i, j, k], 0) + b([j, k, i], 1) + b([k, i, j], 2) + b([i, j, k], 3) +
+      b([j, k, i], 4) + b([k, i, j], 5) + b([i, j, k], 6) + b([j, k, i], 7)
   end
 
-  # probably does not scale beyond 3 dimensions
-  def b(t, b_in) when is_tuple(t) do
-    max = tuple_size(t) - 1
-    index = 0..max
-    |> Enum.map(&({t |> elem(&1), max - &1}))
-    |> Enum.reduce(0, fn {value, shift}, acc -> (b(value, b_in) <<< shift) + acc end)
-    @t
-    |> elem(index)
+  def b([i, j, k], b) do
+    @t |> elem( (b(i, b) <<< 2) + (b(j, b) <<< 1) + b(k, b) )
   end
 
-  def b(n_in, b_in), do: n_in >>> b_in &&& 0x1
+  def b(n, b), do: n >>> b &&& 0x1
 end
 
